@@ -1,0 +1,104 @@
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from app.routes.ask_route import router as ask_router
+from app.routes.file_routes import router as file_router
+from utils.config_handler import ConfigHandler
+from utils.logger import log_event
+from app.config import FILES_DIR
+import os
+
+app = FastAPI(title="Document QA API")
+
+# Allow frontend to access API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # adjust to restrict access
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include other routes
+app.include_router(ask_router, prefix="/ask")
+app.include_router(file_router, prefix="/file")
+
+# Config handler
+config_handler = ConfigHandler()
+
+
+@app.get("/")
+def root():
+    return {"message": "API is running!"}
+
+
+@app.get("/files")
+def list_uploaded_files():
+    try:
+        files = [f.split(".")[0] for f in os.listdir(FILES_DIR) if f.endswith(".pdf")]
+        log_event("SUCCESS", f"Retrieved {len(files)} files.")
+        return {"files": files}
+    except Exception as e:
+        log_event("ERROR", f"Failed to list uploaded files: {e}")
+        raise HTTPException(status_code=500, detail="Unable to list files")
+
+
+@app.get("/config")
+def get_config():
+    try:
+        config = config_handler.load_config()
+        log_event("SUCCESS", "Configuration retrieved successfully.")
+        return config
+    except Exception as e:
+        log_event("ERROR", f"Failed to load config: {e}")
+        raise HTTPException(status_code=500, detail="Unable to load configuration")
+
+
+@app.post("/config")
+def update_config(updates: dict):
+    try:
+        updated_config = config_handler.update_config(updates)
+        log_event("SUCCESS", "Configuration updated successfully.")
+        return updated_config
+    except Exception as e:
+        log_event("ERROR", f"Failed to update config: {e}")
+        raise HTTPException(status_code=500, detail="Unable to update configuration")
+
+
+@app.post("/upload")
+async def upload_pdf(file: UploadFile = File(...)):
+    filename = os.path.splitext(file.filename)[0]
+
+    file_path = os.path.join(FILES_DIR, f"{filename}.pdf")
+    if os.path.exists(file_path):
+        log_event("ERROR", f"Upload failed: {filename}.pdf already exists.")
+        raise HTTPException(status_code=400, detail="File already exists.")
+
+    try:
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+        log_event("SUCCESS", f"File {filename}.pdf uploaded successfully.")
+        from pipelines.query_pipeline import file_upload_pipeline
+        file_upload_pipeline(filename)
+        return {"message": f"{filename}.pdf uploaded and processed successfully."}
+    except Exception as e:
+        log_event("ERROR", f"File upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Upload failed. Check logs.")
+
+
+@app.delete("/delete/{filename}")
+def delete_file(filename: str):
+    file_path = os.path.join(FILES_DIR, f"{filename}.pdf")
+
+    if not os.path.exists(file_path):
+        log_event("ERROR", f"Deletion failed: {filename}.pdf not found.")
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    try:
+        os.remove(file_path)
+        from pipelines.query_pipeline import file_delete_pipeline
+        file_delete_pipeline(filename)
+        log_event("SUCCESS", f"{filename}.pdf and associated data deleted.")
+        return {"message": f"{filename}.pdf deleted successfully."}
+    except Exception as e:
+        log_event("ERROR", f"Deletion failed for {filename}: {e}")
+        raise HTTPException(status_code=500, detail="Deletion failed. Check logs.")
