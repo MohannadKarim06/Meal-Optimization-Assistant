@@ -1,8 +1,8 @@
 {
-    "chat_model_name": "gpt-4",
+    "chat_model_name": "gpt-4-turbo",
     "embedding_model_name": "text-embedding-ada-002",
     "base_prompt": "You are a helpful assistant.",
     "top_k_results": 5,
-    "token_limit": 1000
+    "token_limit": 8000
   }
   

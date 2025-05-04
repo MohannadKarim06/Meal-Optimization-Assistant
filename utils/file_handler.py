@@ -1,4 +1,4 @@
-import os
+import os, sys
 import json
 import fitz  
 import faiss
@@ -6,19 +6,19 @@ import numpy as np
 from uuid import uuid4
 from typing import List, Tuple, Dict
 
-from app.api.openai_client import embed_text
-from config import ConfigManger
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-config = ConfigManger()
-FILES_DIR = config.files_dir()
-INDEX_DIR = config.index_dir()
-CHUNKS_DIR = config.chunks_dir()
-TOP_K_RESULTS = config.top_k_results() 
+from app.api.openai_client import embed_text
+from utils.config_handler import ConfigHandler
+
+from app.config import FILES_DIR, CHUNKS_DIR, INDEX_DIR
 
 
 class FileHandler:
     def __init__(self):
-        pass
+        config = ConfigHandler().load_config()
+        self.TOP_K_RESULTS = config.get("top_k_results") 
+
 
     def extract_text_from_pdf(self, file_name: str) -> str:
         file_path = os.path.join(FILES_DIR, file_name)
@@ -104,7 +104,7 @@ class FileHandler:
             index = faiss.read_index(os.path.join(INDEX_DIR, index_file))
 
             # Search top K
-            distances, indices = index.search(query_vector_np, TOP_K_RESULTS)
+            distances, indices = index.search(query_vector_np, self.TOP_K_RESULTS)
 
             # Load chunk data
             with open(chunk_path, "r", encoding="utf-8") as f:
@@ -122,4 +122,4 @@ class FileHandler:
 
         # Sort by score (lower is better in L2 distance)
         all_results.sort(key=lambda x: x[1])
-        return all_results[:TOP_K_RESULTS]
+        return all_results[:self.TOP_K_RESULTS]

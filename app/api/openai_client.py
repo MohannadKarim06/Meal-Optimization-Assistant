@@ -1,16 +1,20 @@
+import os, sys
 import openai
 from typing import List
 
-from config import ConfigManger
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from utils.config_handler import ConfigHandler
+from app.config import OPENAI_API_KEY
 from utils.logger import log_event
 
-config = ConfigManger()
-openai.api_key = config.openai_api_key()
+openai.api_key = OPENAI_API_KEY
 
-CHAT_MODEL = config.chat_model_name()
-EMBEDDING_MODEL = config.embedding_model_name()
 
 def chat_with_gpt(system_prompt: str, user_query: str) -> str:
+    config = ConfigHandler().load_config()
+    CHAT_MODEL = config.get("chat_model")
+
     try:
         log_event("PROCESS", "Sending message to OpenAI GPT.")
 
@@ -33,6 +37,9 @@ def chat_with_gpt(system_prompt: str, user_query: str) -> str:
 
 
 def embed_text(text: str) -> List[float]:
+    config = ConfigHandler().load_config()
+    EMBEDDING_MODEL = config.get("embedding_model")
+
     try:
         log_event("PROCESS", "Generating embeddings using OpenAI.")
 

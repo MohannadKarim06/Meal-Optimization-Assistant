@@ -1,4 +1,8 @@
 import json
+import os, sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from app.config import CONFIG_PATH
 
 class ConfigHandler:

@@ -1,19 +1,11 @@
 import os
 
-# === Directories ===
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "../data")
-FILES_DIR = os.path.join(DATA_DIR, "files")
-CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
-LOGS_DIR = os.path.join(DATA_DIR, "logs")
-
-# === Files ===
-LOG_FILE = os.path.join(LOGS_DIR, "app.log")
-
-# === Flags / Defaults ===
-DEBUG = True
+FILES_DIR = "/app/data/files"
+CHUNKS_DIR = "/app/data/chunks"
+INDEX_DIR = "/app/data/indexes"
+CONFIG_PATH = "/app/data/config.json"
+LOG_FILE = "/app/data/logs.log"
+OPENAI_API_KEY = "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"
 ALLOWED_FILE_EXTENSIONS = [".pdf"]
 
-# Ensure critical directories exist
 os.makedirs(FILES_DIR, exist_ok=True)
-os.makedirs(LOGS_DIR, exist_ok=True)

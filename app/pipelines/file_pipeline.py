@@ -1,3 +1,7 @@
+import os, sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from utils.file_handler import FileHandler
 from utils.logger import log_event
 

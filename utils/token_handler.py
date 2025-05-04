@@ -1,40 +1,42 @@
 import tiktoken
 from typing import List, Tuple, Dict
+import os, sys
 
-from config import ConfigManger
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from utils.config_handler import ConfigHandler
 from utils.logger import log_event
 
-config = ConfigManger()
-TOKEN_LIMIT = config.token_limit()
-EMBEDDING_MODEL_NAME = config.embedding_model_name()
 
 class TokenHandler:
     def __init__(self):
-        self.tokenizer = tiktoken.encoding_for_model(EMBEDDING_MODEL_NAME)
-
+        config = ConfigHandler().load_config()
+        chat_model_name = config.get("chat_model_name", "gpt-3.5-turbo")  # fallback default
+        self.tokenizer = tiktoken.encoding_for_model(chat_model_name)
 
     def count_tokens(self, text: str) -> int:
         return len(self.tokenizer.encode(text))
-    
 
     def format_chunks(self, chunks: List[Dict]) -> str:
         return "\n\n".join(
             f"## {chunk['title']}\n{chunk['content']}" for chunk in chunks
         )
-    
 
     def build_prompt_within_limit(
-            self,
-            base_prompt: str,
-            user_query: str,
-            retrieved_chunks: List[Tuple[Dict, float]]
+        self,
+        base_prompt: str,
+        user_query: str,
+        retrieved_chunks: List[Tuple[Dict, float]]
     ) -> Tuple[str, str]:
         try:
             log_event("PROCESS", "Building prompt with token limit handling.")
 
+            config = ConfigHandler().load_config()  # ⬅️ Always get latest config here
+            token_limit = config.get("token_limit", 8000)  # fallback default
+
             system_tokens = self.count_tokens(base_prompt)
             query_tokens = self.count_tokens(user_query)
-            available_tokens = TOKEN_LIMIT - system_tokens - query_tokens
+            available_tokens = token_limit - system_tokens - query_tokens
 
             if available_tokens <= 0:
                 log_event("ERROR", "Token limit exceeded by prompt and query alone.")
@@ -61,6 +63,4 @@ class TokenHandler:
 
         except Exception as e:
             log_event("ERROR", f"Error while building prompt: {e}")
-            raise e                   
-                
-                          
+            raise e

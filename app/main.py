@@ -1,11 +1,14 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes.ask_route import router as ask_router
-from app.routes.file_routes import router as file_router
+import os, sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from pipelines.query_pipeline import query_pipeline
+from pipelines.file_pipeline import file_upload_pipeline, file_delete_pipeline
 from utils.config_handler import ConfigHandler
 from utils.logger import log_event
 from app.config import FILES_DIR
-import os
 
 app = FastAPI(title="Document QA API")
 
@@ -18,9 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include other routes
-app.include_router(ask_router, prefix="/ask")
-app.include_router(file_router, prefix="/file")
 
 # Config handler
 config_handler = ConfigHandler()
@@ -53,6 +53,19 @@ def get_config():
         raise HTTPException(status_code=500, detail="Unable to load configuration")
 
 
+@app.post("/ask")
+def ask_route(query: str):
+    try:
+        log_event("PROCESS", "Processing query has started!")
+        response = query_pipeline(query)
+        log_event("SUCCESS", "Query is processed successfully.")
+        return {"response": response}
+    except Exception as e:
+        log_event("ERROR", f"An error occured while processing query: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process query: {str(e)}")
+
+
+
 @app.post("/config")
 def update_config(updates: dict):
     try:
@@ -77,7 +90,6 @@ async def upload_pdf(file: UploadFile = File(...)):
         with open(file_path, "wb") as f:
             f.write(await file.read())
         log_event("SUCCESS", f"File {filename}.pdf uploaded successfully.")
-        from pipelines.query_pipeline import file_upload_pipeline
         file_upload_pipeline(filename)
         return {"message": f"{filename}.pdf uploaded and processed successfully."}
     except Exception as e:
@@ -95,7 +107,6 @@ def delete_file(filename: str):
 
     try:
         os.remove(file_path)
-        from pipelines.query_pipeline import file_delete_pipeline
         file_delete_pipeline(filename)
         log_event("SUCCESS", f"{filename}.pdf and associated data deleted.")
         return {"message": f"{filename}.pdf deleted successfully."}
