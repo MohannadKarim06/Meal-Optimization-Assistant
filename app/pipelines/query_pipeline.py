@@ -5,9 +5,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.file_handler import FileHandler
 from utils.logger import log_event
 from app.api.openai_client import chat_with_gpt
-from utils.token_handler import build_prompt_within_limit
+from utils.token_handler import TokenHandler
 from utils.config_handler import ConfigHandler
 file_handler = FileHandler()
+token_handler = TokenHandler()
 
 def query_pipeline(user_query: str) -> str:
     config = ConfigHandler().load_config()
@@ -16,14 +17,14 @@ def query_pipeline(user_query: str) -> str:
     try:
         log_event("PROCESS", "Searching for relevant content from all indexes.")
         relevant_chunks = file_handler.search_all_indexes(user_query)
-        log_event("SUCCESS", f"Found {len(relevant_chunks)} relevant chunks.")
+        log_event("SUCCESS", f"Found {len(relevant_chunks)} relevant chunks: {relevant_chunks}.")
     except Exception as e:
         log_event("ERROR", f"An error occurred during search: {e}")
         raise e
 
     try:
         log_event("PROCESS", "Building prompt with retrieved chunks.")
-        full_system_prompt, user_query = build_prompt_within_limit(
+        full_system_prompt, user_query = token_handler.build_prompt_within_limit(
             relevant_chunks, user_query, base_prompt
         )
         log_event("SUCCESS", "Prompt built successfully.")

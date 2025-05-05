@@ -28,7 +28,7 @@ class FileHandler:
                 full_text += page.get_text()
         return full_text
 
-    def chunk_text(self, full_text: str) -> List[Dict]:
+    def chunk_text(self, full_text: str, file_name: str) -> List[Dict]:
         sections = full_text.split("Section: ")
         general_rules = sections[0].strip()
         chunks = []
@@ -40,7 +40,7 @@ class FileHandler:
 
             title = section[:title_end].strip()
             content = section[title_end + 1:].strip()
-            full_chunk = f"{general_rules}\n\n## {title}\n{content}"
+            full_chunk = f"from file: {file_name}.pdf\n\n{general_rules}\n\n## {title}\n{content}"
             chunk_id = str(uuid4())
 
             chunks.append({

@@ -8,7 +8,7 @@ from pipelines.query_pipeline import query_pipeline
 from pipelines.file_pipeline import file_upload_pipeline, file_delete_pipeline
 from utils.config_handler import ConfigHandler
 from utils.logger import log_event
-from app.config import FILES_DIR
+from app.config import FILES_DIR, LOGS_FILE
 
 app = FastAPI(title="Document QA API")
 
@@ -29,6 +29,17 @@ config_handler = ConfigHandler()
 @app.get("/")
 def root():
     return {"message": "API is running!"}
+
+
+@app.get("/logs")
+def get_logs():
+    if not os.path.exists(LOGS_FILE):
+        raise HTTPException(status_code=404, detail="Log file not found")
+
+    with open(LOGS_FILE, "r") as f:
+        logs = f.read()
+    return {"logs": logs}
+
 
 
 @app.get("/files")

@@ -20,7 +20,7 @@ def file_upload_pipeline(file_name: str):
 
     try:
         log_event("PROCESS", "Chunking text has started!")
-        chunks = file_handler.chunk_text(text)
+        chunks = file_handler.chunk_text(full_text=text, file_name=file_name)
         log_event("SUCCESS", f"Chunking completed. Total chunks: {len(chunks)}.")
     except Exception as e:
         log_event("ERROR", f"An error occurred while chunking text: {e}")
