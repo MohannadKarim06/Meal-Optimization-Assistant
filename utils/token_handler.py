@@ -34,6 +34,8 @@ class TokenHandler:
             config = ConfigHandler().load_config()  # ⬅️ Always get latest config here
             token_limit = config.get("token_limit", 8000)  # fallback default
 
+
+
             system_tokens = self.count_tokens(base_prompt)
             query_tokens = self.count_tokens(user_query)
             available_tokens = token_limit - system_tokens - query_tokens
@@ -46,15 +48,18 @@ class TokenHandler:
             total_chunk_tokens = 0
 
             for chunk, _score in retrieved_chunks:
-                chunk_text = f"## {chunk['title']}\n{chunk['content']}"
+                title = str(chunk.get('title', '') or '')
+                content = str(chunk.get('content', '') or '')
+
+                chunk_text = f"## {title}\n{content}"
                 chunk_tokens = self.count_tokens(chunk_text)
 
                 if total_chunk_tokens + chunk_tokens > available_tokens:
                     break
 
-                final_chunks.append(chunk)
+                final_chunks.append({'title': title, 'content': content})
                 total_chunk_tokens += chunk_tokens
-
+                
             context_text = self.format_chunks(final_chunks)
             full_system_prompt = f"{base_prompt}\n\n{context_text}"
 

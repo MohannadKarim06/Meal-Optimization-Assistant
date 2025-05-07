@@ -21,35 +21,50 @@ class FileHandler:
 
 
     def extract_text_from_pdf(self, file_name: str) -> str:
-        file_path = os.path.join(FILES_DIR, file_name)
+        file_path = os.path.join(FILES_DIR, f"{file_name}.pdf")
         full_text = ""
         with fitz.open(file_path) as doc:
             for page in doc:
                 full_text += page.get_text()
         return full_text
 
+
     def chunk_text(self, full_text: str, file_name: str) -> List[Dict]:
         sections = full_text.split("Section: ")
-        general_rules = sections[0].strip()
+        if len(sections) < 2:
+            raise ValueError("Expected 'Section: ' markers not found in PDF text.")
+
         chunks = []
 
-        for section in sections[1:]:
-            title_end = section.find("\n")
-            if title_end == -1:
-                continue
+        # Parse the general section (first section after split)
+        first_section = sections[1]
+        title_end = first_section.find("\n")
+        general_title = first_section[:title_end].strip()
+        general_rules = first_section[title_end + 1:].strip()
 
+        # Save general section as a chunk too (optional)
+        general_chunk = f"from file: {file_name}.pdf\n\n## {general_title}\n{general_rules}"
+        chunks.append({
+            "id": str(uuid4()),
+            "title": general_title,
+            "content": general_chunk
+        })
+
+        # Process the remaining sections and inject general rules
+        for section in sections[2:]:
+            title_end = section.find("\n")
             title = section[:title_end].strip()
             content = section[title_end + 1:].strip()
-            full_chunk = f"from file: {file_name}.pdf\n\n{general_rules}\n\n## {title}\n{content}"
-            chunk_id = str(uuid4())
 
+            full_chunk = f"from file: {file_name}.pdf\n\n{general_rules}\n\n## {title}\n{content}"
             chunks.append({
-                "id": chunk_id,
+                "id": str(uuid4()),
                 "title": title,
                 "content": full_chunk
             })
 
         return chunks
+
 
     def embed_chunks(self, chunks: List[Dict]) -> List[Tuple[str, List[float]]]:
         embeddings = []
@@ -57,6 +72,7 @@ class FileHandler:
             vector = embed_text(chunk["content"])
             embeddings.append((chunk["id"], vector))
         return embeddings
+
 
     def save_chunks_and_index(self, chunks: List[Dict], embeddings: List[Tuple[str, List[float]]], file_name: str) -> None:
         ids = [chunk["id"] for chunk in chunks]
@@ -76,6 +92,7 @@ class FileHandler:
         with open(chunk_path, "w", encoding="utf-8") as f:
             json.dump(chunk_data, f, indent=2, ensure_ascii=False)
 
+
     def delete_data_files(self, file_name: str) -> None:
         index_path = os.path.join(INDEX_DIR, f"{file_name}_index.index")
         chunk_path = os.path.join(CHUNKS_DIR, f"{file_name}_chunks.json")
@@ -83,6 +100,7 @@ class FileHandler:
         for path in [index_path, chunk_path]:
             if os.path.exists(path):
                 os.remove(path)
+
 
     def search_all_indexes(self, query: str) -> List[Tuple[Dict, float]]:
         query_vector = embed_text(query)

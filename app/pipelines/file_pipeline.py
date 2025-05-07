@@ -13,7 +13,7 @@ def file_upload_pipeline(file_name: str):
     try:
         log_event("PROCESS", "Extracting text from PDF has started!")
         text = file_handler.extract_text_from_pdf(file_name)
-        log_event("SUCCESS", "Extracting text from PDF is completed.")
+        log_event("SUCCESS", f"Extracting text from PDF is completed.")
     except Exception as e:
         log_event("ERROR", f"An error occurred while extracting text from PDF: {e}")
         raise e

@@ -5,6 +5,20 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.config import CONFIG_PATH
 
+# Create default config if it doesn't exist
+default_config = {
+    "chat_model_name": "gpt-4-turbo",
+    "embedding_model_name": "text-embedding-ada-002",
+    "base_prompt": "You are a helpful assistant.",
+    "top_k_results": 5,
+    "token_limit": 8000
+}
+
+if not os.path.exists(CONFIG_PATH):
+    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+    with open(CONFIG_PATH, 'w') as f:
+        json.dump(default_config, f, indent=4)
+
 class ConfigHandler:
     def __init__(self, path=CONFIG_PATH):
         self.path = path

@@ -4,8 +4,8 @@ import os, sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pipelines.query_pipeline import query_pipeline
-from pipelines.file_pipeline import file_upload_pipeline, file_delete_pipeline
+from app.pipelines.query_pipeline import query_pipeline
+from app.pipelines.file_pipeline import file_upload_pipeline, file_delete_pipeline
 from utils.config_handler import ConfigHandler
 from utils.logger import log_event
 from app.config import FILES_DIR, LOGS_FILE

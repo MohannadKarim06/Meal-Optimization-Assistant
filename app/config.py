@@ -5,7 +5,10 @@ CHUNKS_DIR = "/app/data/chunks"
 INDEX_DIR = "/app/data/indexes"
 CONFIG_PATH = "/app/data/config.json"
 LOGS_FILE = "/app/data/logs/logs.log"
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = "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"
 ALLOWED_FILE_EXTENSIONS = [".pdf"]
 
 os.makedirs(FILES_DIR, exist_ok=True)
+os.makedirs(CHUNKS_DIR, exist_ok=True)
+os.makedirs(INDEX_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(LOGS_FILE), exist_ok=True)
