@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.api.openai_client import embed_text
 from utils.config_handler import ConfigHandler
+from utils.logger import log_event
 
 from app.config import FILES_DIR, CHUNKS_DIR, INDEX_DIR
 
@@ -17,7 +18,8 @@ from app.config import FILES_DIR, CHUNKS_DIR, INDEX_DIR
 class FileHandler:
     def __init__(self):
         config = ConfigHandler().load_config()
-        self.TOP_K_RESULTS = config.get("top_k_results") 
+        self.TOP_K_RESULTS = config.get("top_k_results")
+        self.SIMILARITY_THRESHOLD = config.get("similarity_threshold", 0.6)
 
 
     def extract_text_from_pdf(self, file_name: str) -> str:
@@ -36,13 +38,11 @@ class FileHandler:
 
         chunks = []
 
-        # Parse the general section (first section after split)
         first_section = sections[1]
         title_end = first_section.find("\n")
         general_title = first_section[:title_end].strip()
         general_rules = first_section[title_end + 1:].strip()
 
-        # Save general section as a chunk too (optional)
         general_chunk = f"from file: {file_name}.pdf\n\n## {general_title}\n{general_rules}"
         chunks.append({
             "id": str(uuid4()),
@@ -50,7 +50,6 @@ class FileHandler:
             "content": general_chunk
         })
 
-        # Process the remaining sections and inject general rules
         for section in sections[2:]:
             title_end = section.find("\n")
             title = section[:title_end].strip()
@@ -79,14 +78,17 @@ class FileHandler:
         vectors = [vec for _, vec in embeddings]
 
         dimension = len(vectors[0])
-        index = faiss.IndexFlatL2(dimension)
-        index.add(np.array(vectors).astype("float32"))
+        
+        index = faiss.IndexFlatIP(dimension)
+        
+        vectors_np = np.array(vectors).astype("float32")
+        faiss.normalize_L2(vectors_np)
+        
+        index.add(vectors_np)
 
-        # Save FAISS index
         index_path = os.path.join(INDEX_DIR, f"{file_name}_index.index")
         faiss.write_index(index, index_path)
 
-        # Save chunk text
         chunk_path = os.path.join(CHUNKS_DIR, f"{file_name}_chunks.json")
         chunk_data = {chunk["id"]: chunk for chunk in chunks}
         with open(chunk_path, "w", encoding="utf-8") as f:
@@ -103,11 +105,16 @@ class FileHandler:
 
 
     def search_all_indexes(self, query: str) -> List[Tuple[Dict, float]]:
+        log_event("PROCESS", "Generating embedding for search query")
         query_vector = embed_text(query)
         query_vector_np = np.array([query_vector]).astype("float32")
-
+        
+        faiss.normalize_L2(query_vector_np)
+        
         all_results = []
+        filtered_results = []
 
+        log_event("PROCESS", f"Searching through indexes with similarity threshold: {self.SIMILARITY_THRESHOLD}")
         for index_file in os.listdir(INDEX_DIR):
             if not index_file.endswith(".index"):
                 continue
@@ -118,26 +125,37 @@ class FileHandler:
             if not os.path.exists(chunk_path):
                 continue
 
-            # Load FAISS index
-            index = faiss.read_index(os.path.join(INDEX_DIR, index_file))
+            try:
+                with open(chunk_path, "r", encoding="utf-8") as f:
+                    chunk_data = json.load(f)
+                
+                index = faiss.read_index(os.path.join(INDEX_DIR, index_file))
 
-            # Search top K
-            distances, indices = index.search(query_vector_np, self.TOP_K_RESULTS)
+                search_k = min(self.TOP_K_RESULTS * 3, 50)  
+                distances, indices = index.search(query_vector_np, search_k)
 
-            # Load chunk data
-            with open(chunk_path, "r", encoding="utf-8") as f:
-                chunk_data = json.load(f)
+                for i, score in zip(indices[0], distances[0]):
+                    if i == -1:
+                        continue  
+                    
+                    if score < self.SIMILARITY_THRESHOLD:
+                        continue  
+                    
+                    chunk_ids = list(chunk_data.keys())
+                    if i < len(chunk_ids):
+                        chunk_id = chunk_ids[i]
+                        chunk = chunk_data.get(chunk_id)
+                        if chunk:
+                            all_results.append((chunk, float(score)))
+            
+            except Exception as e:
+                log_event("ERROR", f"Error searching index {file_name}: {e}")
+                continue
 
-            for i, score in zip(indices[0], distances[0]):
-                if i == -1:
-                    continue  # No result
-                chunk_ids = list(chunk_data.keys())
-                if i < len(chunk_ids):
-                    chunk_id = chunk_ids[i]
-                    chunk = chunk_data.get(chunk_id)
-                    if chunk:
-                        all_results.append((chunk, float(score)))
-
-        # Sort by score (lower is better in L2 distance)
-        all_results.sort(key=lambda x: x[1])
-        return all_results[:self.TOP_K_RESULTS]
+        all_results.sort(key=lambda x: x[1], reverse=True)
+        
+        filtered_count = len(all_results)
+        final_results = all_results[:self.TOP_K_RESULTS]
+        
+        log_event("SUCCESS", f"Found {filtered_count} relevant results (score >= {self.SIMILARITY_THRESHOLD})")
+        return final_results

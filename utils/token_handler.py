@@ -11,7 +11,7 @@ from utils.logger import log_event
 class TokenHandler:
     def __init__(self):
         config = ConfigHandler().load_config()
-        chat_model_name = config.get("chat_model_name", "gpt-3.5-turbo")  # fallback default
+        chat_model_name = config.get("chat_model_name", "gpt-3.5-turbo")  
         self.tokenizer = tiktoken.encoding_for_model(chat_model_name)
 
     def count_tokens(self, text: str) -> int:
@@ -31,8 +31,8 @@ class TokenHandler:
         try:
             log_event("PROCESS", "Building prompt with token limit handling.")
 
-            config = ConfigHandler().load_config()  # ⬅️ Always get latest config here
-            token_limit = config.get("token_limit", 8000)  # fallback default
+            config = ConfigHandler().load_config()  
+            token_limit = config.get("token_limit", 8000)  
 
 
 

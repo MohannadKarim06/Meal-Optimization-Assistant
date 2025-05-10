@@ -5,7 +5,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.config import CONFIG_PATH
 
-# Create default config if it doesn't exist
 default_config = {
     "chat_model_name": "gpt-4-turbo",
     "embedding_model_name": "text-embedding-ada-002",

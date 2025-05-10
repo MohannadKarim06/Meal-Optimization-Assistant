@@ -12,17 +12,15 @@ from app.config import FILES_DIR, LOGS_FILE
 
 app = FastAPI(title="Document QA API")
 
-# Allow frontend to access API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # adjust to restrict access
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# Config handler
 config_handler = ConfigHandler()
 
 

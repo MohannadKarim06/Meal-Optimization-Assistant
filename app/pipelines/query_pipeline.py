@@ -1,4 +1,5 @@
 import os, sys
+import re
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -10,34 +11,53 @@ from utils.config_handler import ConfigHandler
 file_handler = FileHandler()
 token_handler = TokenHandler()
 
+def sanitize_query(query: str) -> str:
+    sanitized = query.replace("&", "and")
+    
+    sanitized = re.sub(r'[^\w\s.,?!:;()\[\]{}\'"-]', ' ', sanitized)
+    
+    sanitized = ' '.join(sanitized.split())
+    
+    if sanitized != query:
+        log_event("INFO", f"Query sanitized: '{query}' -> '{sanitized}'")
+    
+    return sanitized
+
 def query_pipeline(user_query: str) -> str:
     config = ConfigHandler().load_config()
     base_prompt = config.get("base_prompt")
     
     try:
+        log_event("PROCESS", "Sanitizing user query.")
+        sanitized_query = sanitize_query(user_query)
+        log_event("SUCCESS", "Query sanitized successfully.")
+        
         log_event("PROCESS", "Searching for relevant content from all indexes.")
-        relevant_chunks = file_handler.search_all_indexes(user_query)
+        relevant_chunks = file_handler.search_all_indexes(sanitized_query)
         log_event("SUCCESS", f"Found {len(relevant_chunks)}.")
+
     except Exception as e:
         log_event("ERROR", f"An error occurred during search: {e}")
         raise e
 
     try:
         log_event("PROCESS", "Building prompt with retrieved chunks.")
-        full_system_prompt, user_query = token_handler.build_prompt_within_limit(
-            base_prompt, user_query, relevant_chunks
+        full_system_prompt, sanitized_query = token_handler.build_prompt_within_limit(
+            base_prompt, sanitized_query, relevant_chunks
         )
         log_event("SUCCESS", "Prompt built successfully.")
+
     except Exception as e:
         log_event("ERROR", f"An error occurred while building the prompt: {e}")
         raise e
 
     try:
         log_event("PROCESS", "Sending query to GPT.")
-        response = chat_with_gpt(full_system_prompt, user_query)
+        response = chat_with_gpt(full_system_prompt, sanitized_query)
         log_event("SUCCESS", "Received response from GPT.")
-        log_event("INFO", f": Full System prompt 'Base prompt + Chunks':\n\n{full_system_prompt}\n\nUser Query:\n\n{user_query}\n\nGPT output:\n\n{response}")
+        log_event("INFO", f": Full System prompt 'Base prompt + Chunks':\n\n{full_system_prompt}\n\nUser Query:\n\n{sanitized_query}\n\nGPT output:\n\n{response}")
         return response
+    
     except Exception as e:
         log_event("ERROR", f"An error occurred while querying GPT: {e}")
         raise e
