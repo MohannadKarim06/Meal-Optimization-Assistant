@@ -59,8 +59,9 @@ class QueryHandler():
     
 
     def get_final_response(self, query, prompt, temp, type):
-        full_prompt = f"You are analyzing a Type {type}. NEVER mention this type to the user.\n\n{prompt}"
+        full_prompt = f"You are analyzing a Type {type}. NEVER NEVER mention this type to the user.\n\n{prompt}"
 
         response = chat_with_gpt(system_prompt=full_prompt, user_query=query, temp=temp, max_tokens=None)
+        log_event("INFO", f": User Query:\n\n{query}\n\nFull System prompt 'Base prompt + Chunks':\n\n{full_prompt}\n\nGPT output:\n\n{response}")
 
         return response

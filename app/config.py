@@ -25,10 +25,24 @@ Classify the user input into exactly ONE of these categories:
 meal_type_prompt = """
 You are a blood glucose response expert. Your task is to classify the meal or beverage into exactly ONE of these categories:
 
-- TYPE A MEALS: Refined grains/flours, starchy staples, sugars, juices, large portions
+- TYPE A MEALS: Refined grains/flours, starchy staples, sugars, juices, large portions, ANY alcoholic beverages
+  * Examples: white rice, white bread, pasta, naan, potatoes, sodas, fruit juices, desserts, ice cream, 
+    whiskey, vodka, beer, wine, cocktails, mixed drinks (ANY alcoholic drink regardless of mixer)
+
 - TYPE B MEALS: Moderate whole grains, legumes as main, small portions balanced with protein
+  * Examples: brown rice with chicken, whole wheat roti with dal, oatmeal with nuts, quinoa bowl
+
 - TYPE C MEALS: Mainly protein/fat with non-starchy vegetables, minimal starchy components
+  * Examples: chicken salad, fish with vegetables, paneer with greens, tofu stir-fry
+
 - TYPE D MEALS: Almost exclusively protein, fats, non-starchy vegetables, unsweetened beverages
+  * Examples: grilled chicken, seekh kebab, boti kebab, grilled mushroom, soya chaap, paneer tikka, 
+    grilled chicken with spinach, boiled eggs with salad, plain yogurt, unsweetened black coffee or tea
+
+Special classification rules:
+1. ALWAYS classify ANY alcoholic beverages (whiskey, vodka, beer, wine, etc.) as Type A, regardless of mixers
+2. ALWAYS classify protein-based dishes with non-starchy vegetables (like grilled chicken with spinach) as Type D
+3. When in doubt between Type C and Type D for high-protein meals, prefer Type D
 
 ONLY return the letter A, B, C, or D with no explanation or additional text.
 """

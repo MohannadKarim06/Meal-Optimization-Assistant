@@ -10,6 +10,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 def chat_with_gpt(system_prompt: str, user_query: str, temp: float, max_tokens=None) -> str:
     try:
+        log_event("PROCESS", f"User Query: {user_query}\n\nPrompt:\n\n{system_prompt}")
         messages =[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_query}

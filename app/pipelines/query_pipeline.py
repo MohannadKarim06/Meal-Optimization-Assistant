@@ -65,7 +65,7 @@ def query_pipeline(user_query: str) -> str:
 
     try:
         log_event("PROCESS", "Sending query to GPT.")
-        response = query_handler.get_final_response(prompt=full_system_prompt, query=sanitized_query, temp=0.7, type=meal_type)
+        response = query_handler.get_final_response(prompt=full_system_prompt, query=sanitized_query, temp=0.6, type=meal_type)
         log_event("SUCCESS", "Received response from GPT.")
         log_event("INFO", f": User Query:\n\n{sanitized_query}\n\nFull System prompt 'Base prompt + Chunks':\n\n{full_system_prompt}\n\nGPT output:\n\n{response}")
         return response
