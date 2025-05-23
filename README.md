@@ -111,10 +111,14 @@ The system supports dynamic configuration through `/config` endpoint:
 
 ### Meal Classification System
 The system intelligently categorizes meals into four types based on their nutritional profile:
-- **Type A**: High-glycemic foods, refined carbs, sugars, alcohol
-- **Type B**: Moderate whole grains, legumes, balanced meals
-- **Type C**: Protein-focused with non-starchy vegetables
-- **Type D**: High-protein, low-carb, optimal choices
+
+Type A: Refined carbs, high-sugar items
+
+Type B: Balanced meals with moderate grains
+
+Type C: Lean proteins and vegetables
+
+Type D: Optimized high-protein, low-carb options
 
 ### Document Processing
 1. PDFs are uploaded and processed section by section
