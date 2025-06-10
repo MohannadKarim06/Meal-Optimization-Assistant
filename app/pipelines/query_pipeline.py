@@ -1,5 +1,6 @@
 import os, sys
 import re
+from typing import Tuple, List, Dict
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -15,16 +16,19 @@ file_handler = FileHandler()
 token_handler = TokenHandler()
 
 
-def query_pipeline(user_query: str) -> str:
+def query_pipeline(user_query: str, chat_history: List[Dict] = None) -> Tuple[str, bool]:
     config = ConfigHandler().load_config()
     base_prompt = config.get("base_prompt")
+    counts_toward_limit = True
     
     try:
         log_event("PROCESS", "Identifying query.")
-        query_handler.identify_query(query=user_query, prompt=query_type_prompt, temp=0.1)
+        query_handler.identify_query(query=user_query, prompt=query_type_prompt, chat_history=chat_history, temp=0.1)
         log_event("SUCCESS", "Query is valid.")
+
+
     except PipelineReturn as pr:
-        return pr.value
+        return pr.value, pr.counts_toward_limit
     except Exception as e:
         log_event("ERROR", f"An error occured during getting query type: {e}")
         raise e
@@ -34,7 +38,7 @@ def query_pipeline(user_query: str) -> str:
         meal_type = query_handler.get_type(query=user_query, prompt=meal_type_prompt, temp=0.1)
         log_event("SUCCESS", f"Meal type is: {meal_type}")
     except PipelineReturn as pr:
-        return pr.value
+        return pr.value, pr.counts_toward_limit
     except Exception as e:
         log_event("ERROR", "An error occured during getting meal type")    
         raise e    
@@ -68,7 +72,8 @@ def query_pipeline(user_query: str) -> str:
         response = query_handler.get_final_response(prompt=full_system_prompt, query=sanitized_query, temp=0.6, type=meal_type)
         log_event("SUCCESS", "Received response from GPT.")
         log_event("INFO", f": User Query:\n\n{sanitized_query}\n\nFull System prompt 'Base prompt + Chunks':\n\n{full_system_prompt}\n\nGPT output:\n\n{response}")
-        return response
+        
+        return response, counts_toward_limit
     
     except Exception as e:
         log_event("ERROR", f"An error occurred while querying GPT: {e}")

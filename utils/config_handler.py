@@ -10,8 +10,16 @@ default_config = {
     "embedding_model_name": "text-embedding-ada-002",
     "base_prompt": "You are a helpful assistant.",
     "top_k_results": 5,
-    "token_limit": 8000
+    "token_limit": 8000,
+    "follow_ups_prompt": "You are a helpful assistant answering a follow up question...",
+    "type_d_limit": False,
+    "follow_ups_limit": True
+    
 }
+
+if os.path.exists(CONFIG_PATH):
+    os.remove(CONFIG_PATH)
+
 
 if not os.path.exists(CONFIG_PATH):
     os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)

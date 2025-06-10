@@ -1,5 +1,8 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from datetime import datetime
+from typing import List, Dict, Optional
 import os, sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -23,10 +26,44 @@ app.add_middleware(
 
 config_handler = ConfigHandler()
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class QueryRequest(BaseModel):
+    query: str 
+    chat_history: List[ChatMessage] = []
+
 
 @app.get("/")
 def root():
     return {"message": "API is running!"}
+
+
+@app.get("/time")
+def get_server_time():
+
+    try:
+        current_time = datetime.now()
+        utc_time = datetime.utcnow()
+        
+        response_data = {
+            "server_time": {
+                "local": current_time.isoformat(),
+                "utc": utc_time.isoformat(),
+                "timestamp": current_time.timestamp(),
+                "timezone": str(current_time.astimezone().tzinfo)
+            },
+            "message": "Server time retrieved successfully"
+        }
+        
+        log_event("SUCCESS", "Server time requested and provided.")
+        return response_data
+        
+    except Exception as e:
+        log_event("ERROR", f"Failed to get server time: {e}")
+        raise HTTPException(status_code=500, detail="Unable to retrieve server time")
+
 
 
 @app.get("/logs")
@@ -62,16 +99,25 @@ def get_config():
         raise HTTPException(status_code=500, detail="Unable to load configuration")
 
 
+
 @app.post("/ask")
-def ask_route(query: str):
+def ask_route(request: QueryRequest):
     try:
         log_event("PROCESS", "Processing query has started!")
-        response = query_pipeline(query)
+
+        chat_history = [{"role": msg.role, "content": msg.content} for msg in request.chat_history]
+
+        response, counts_toward_limit = query_pipeline(request.query, chat_history)
         log_event("SUCCESS", "Query is processed successfully.")
-        return {"response": response}
+        return {
+            "response": response,
+            "counts_toward_limit": counts_toward_limit
+            }
     except Exception as e:
-        log_event("ERROR", f"An error occured while processing query: {e}")
+        log_event("ERROR", f"An error occurred while processing query: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process query: {str(e)}")
+
+
 
 
 

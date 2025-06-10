@@ -1,5 +1,5 @@
 from openai import OpenAI
-from typing import List
+from typing import List, Dict, Optional
 
 from utils.config_handler import ConfigHandler
 from utils.logger import log_event
@@ -8,18 +8,26 @@ from app.config import OPENAI_API_KEY
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 
-def chat_with_gpt(system_prompt: str, user_query: str, temp: float, max_tokens=None) -> str:
+def chat_with_gpt(system_prompt: str, user_query: str, temp: float, max_tokens=None, chat_history: List[Dict] = None) -> str:
     try:
-        log_event("PROCESS", f"User Query: {user_query}\n\nPrompt:\n\n{system_prompt}")
-        messages =[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_query}
-                
-            ]
+        if chat_history is None:
+            chat_history = []
+            
+        log_event("PROCESS", f"User Query: {user_query}\n\nPrompt:\n\n{system_prompt}\n\nChat History Length: {len(chat_history)}")
+        
+        # Build messages array starting with system prompt
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add chat history if provided
+        if chat_history:
+            messages.extend(chat_history)
+            
+        # Add the current user query
+        messages.append({"role": "user", "content": user_query})
 
         config = ConfigHandler().load_config()
         CHAT_MODEL = config.get("chat_model_name")
-        log_event("PROCESS", "Sending message to OpenAI GPT.")
+        log_event("PROCESS", f"Sending message to OpenAI GPT with {len(messages)} total messages.")
         
         if max_tokens:
             response = client.chat.completions.create(

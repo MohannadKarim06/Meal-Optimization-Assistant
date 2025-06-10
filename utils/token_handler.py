@@ -69,3 +69,40 @@ class TokenHandler:
         except Exception as e:
             log_event("ERROR", f"Error while building prompt: {e}")
             raise e
+
+
+    def trim_chat_history(self, chat_history: List[Dict], max_tokens:int=600):
+
+        if not chat_history:
+            return ""
+        
+        total_tokens = 0
+
+        for message in chat_history:
+
+            role = message.get("role", "")
+            content = message.get("content", "")
+
+            message_text = f"{role}: {content}"
+            total_tokens += self.count_tokens(message_text)
+
+
+        if total_tokens <= max_tokens:
+            return chat_history
+
+        trimmed_history = chat_history.copy()            
+        current_tokens = total_tokens
+
+        while current_tokens > max_tokens and trimmed_history:
+
+            removed_message = trimmed_history[0].pop()
+
+            role = removed_message.get("role", "")
+            content = removed_message.get("content", "")
+
+            removed_message_tokens = self.count_tokens(f"{role}: {content}")
+
+            current_tokens -= removed_message_tokens
+
+        return trimmed_history
+

@@ -159,3 +159,63 @@ class FileHandler:
         
         log_event("SUCCESS", f"Found {filtered_count} relevant results (score >= {self.SIMILARITY_THRESHOLD})")
         return final_results
+    
+
+    def followup_search(query, max_chunks:int=5, threshold:float=0.8):
+
+        query_vector = embed_text(query)
+        query_vector_np = np.array([query_vector]).astype("float32")
+
+        faiss.normalize_L2(query_vector_np)
+
+        all_results = []
+
+        for index_file in os.listdir(INDEX_DIR):
+            if not index_file.endswith(".index"):
+                continue
+
+
+            file_name = index_file.replace("_index.index", "")
+            chunks_path = os.path.join(CHUNKS_DIR, "_chunks.json")
+
+            if not os.path.exists("chunks_path"):
+                continue
+
+            index_path = os.path.join(INDEX_DIR, index_file)
+
+            with open(chunks_path, "r", encoding="utf-8") as f:
+                chunks_data = json.load(f)
+
+            index = faiss.read_index(index_path)
+
+            search_k = min(max_chunks * 4, 50)  
+
+            distances, indices = faiss.search(index, search_k)
+            
+            for i, score in zip(indices[0], distances[0]):
+
+                if i == -1:
+                    continue
+
+
+                if score < threshold:
+                    continue
+
+                chunk_ids = chunks_data.keys()
+
+                if i < len(chunk_ids):
+                    chunk_id = chunk_ids[i]
+                    chunk = chunks_data.get(chunk_id)
+                    if chunk:
+                        all_results.append((chunk, float(score)))
+
+        all_results.sort(key=lambda x: x[1], reverse=True)
+
+        final_reesults = all_results[:max_chunks]
+
+        return final_reesults
+
+
+             
+
+
