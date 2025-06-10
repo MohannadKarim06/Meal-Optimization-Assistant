@@ -54,10 +54,19 @@ class QueryHandler():
         
         elif str(response) == "3":
             log_event("PROCESS", "Query is a follow up, Getting response...")
-            data_chunks = file_handler.followup_search(query=query)
-            follow_up_full_prompt = f"{follow_ups_prompt}\n\n{data_chunks}" 
-            response = chat_with_gpt(system_prompt=follow_up_full_prompt, user_query=query, temp=0.6, chat_history=chat_history)
-            log_event("SUCCESS", "Response to follow up is generated.")
+            try:
+                data_chunks = file_handler.followup_search(query=query)
+                if data_chunks:
+                    chunks_text = "\n\n".join([chunk[0]['content'] for chunk in data_chunks])
+                    follow_up_full_prompt = f"{follow_ups_prompt}\n\n{chunks_text}"
+                else:
+                    follow_up_full_prompt = follow_ups_prompt
+                    
+                response = chat_with_gpt(system_prompt=follow_up_full_prompt, user_query=query, temp=0.6, chat_history=chat_history)
+                log_event("SUCCESS", "Response to follow up is generated.")
+            except Exception as e:
+                log_event("ERROR", f"Error handling follow-up: {e}")
+                response = "I'm having trouble accessing the information right now. Could you rephrase your question?"
             
             raise PipelineReturn(value=response, counts_toward_limit=follow_ups_limit)
 

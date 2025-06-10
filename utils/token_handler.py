@@ -95,7 +95,7 @@ class TokenHandler:
 
         while current_tokens > max_tokens and trimmed_history:
 
-            removed_message = trimmed_history[0].pop()
+            removed_message = trimmed_history.pop(0)
 
             role = removed_message.get("role", "")
             content = removed_message.get("content", "")
