@@ -17,9 +17,6 @@ default_config = {
     
 }
 
-if os.path.exists(CONFIG_PATH):
-    os.remove(CONFIG_PATH)
-
 
 if not os.path.exists(CONFIG_PATH):
     os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
